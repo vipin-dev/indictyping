@@ -59,7 +59,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const adClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
+  const adsenseClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT || 'ca-pub-3988829621003546';
   const gaId =
     process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || firebaseConfig.measurementId;
 
@@ -67,6 +67,15 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <meta name="google-adsense-account" content="ca-pub-3988829621003546" />
+        {adsenseClient && (
+          <Script
+            id="adsense-auto"
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`}
+            crossOrigin="anonymous"
+            strategy="afterInteractive"
+          />
+        )}
         {gaId && (
           <>
             <Script
@@ -92,14 +101,6 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {adClient && (
-          <Script
-            id="adsense"
-            strategy="afterInteractive"
-            crossOrigin="anonymous"
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adClient}`}
-          />
-        )}
         {gaId && <AnalyticsTracker measurementId={gaId} />}
         {children}
       </body>
