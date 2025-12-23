@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import Link from 'next/link';
 import TargetTextRenderer from './TargetTextRenderer';
 import TypingInput from './TypingInput';
 import StatsBar from './StatsBar';
@@ -196,7 +197,12 @@ export default function PracticePage() {
       <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
         {/* Top bar */}
         <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-          <h1 className="text-lg font-semibold text-slate-900">IndicTyping</h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-lg font-semibold text-slate-900">IndicTyping</h1>
+            <Link href="/about" className="text-sm text-indigo-700 hover:text-indigo-900">
+              About
+            </Link>
+          </div>
           <div className="flex items-center gap-3">
             <label className="text-sm font-medium text-slate-800">
               Language

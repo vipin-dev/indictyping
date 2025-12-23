@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AnalyticsTracker from "@/components/AnalyticsTracker";
 import { firebaseConfig } from "@/utils/firebase";
+import SiteFooter from "@/components/SiteFooter";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -102,7 +103,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {gaId && <AnalyticsTracker measurementId={gaId} />}
-        {children}
+        <div className="min-h-screen flex flex-col">
+          <main className="flex-1">{children}</main>
+          <SiteFooter />
+        </div>
       </body>
     </html>
   );
