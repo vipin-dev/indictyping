@@ -11,6 +11,10 @@
         "source": "**",
         "destination": "/index.html"
       }
+    ],
+    "predeploy": [
+      "pnpm install --frozen-lockfile",
+      "pnpm run build"
     ]
   }
 }

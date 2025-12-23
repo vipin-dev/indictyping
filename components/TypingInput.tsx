@@ -9,7 +9,7 @@ interface TypingInputProps {
   onChange: (value: string) => void;
   onKeyDown: (event: KeyboardEvent) => void;
   targetText: string;
-  inputRef?: React.RefObject<HTMLTextAreaElement>;
+  inputRef?: React.RefObject<HTMLTextAreaElement | null>;
   disabled?: boolean;
 }
 
