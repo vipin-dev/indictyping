@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import AnalyticsTracker from "@/components/AnalyticsTracker";
+import { firebaseConfig } from "@/utils/firebase";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -58,11 +60,34 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const adClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
+  const gaId =
+    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || firebaseConfig.measurementId;
 
   return (
     <html lang="en">
       <head>
         <meta name="google-adsense-account" content="ca-pub-3988829621003546" />
+        {gaId && (
+          <>
+            <Script
+              id="gtag-src"
+              src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
+              strategy="afterInteractive"
+            />
+            <Script
+              id="gtag-init"
+              strategy="afterInteractive"
+              dangerouslySetInnerHTML={{
+                __html: `
+                  window.dataLayer = window.dataLayer || [];
+                  function gtag(){dataLayer.push(arguments);}
+                  gtag('js', new Date());
+                  gtag('config', '${gaId}', { page_path: window.location.pathname });
+                `,
+              }}
+            />
+          </>
+        )}
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
@@ -75,6 +100,7 @@ export default function RootLayout({
             src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adClient}`}
           />
         )}
+        {gaId && <AnalyticsTracker measurementId={gaId} />}
         {children}
       </body>
     </html>

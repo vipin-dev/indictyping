@@ -3,7 +3,7 @@
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import { Analytics, getAnalytics, isSupported } from 'firebase/analytics';
 
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: 'AIzaSyCDdeUKiNYqauNEu1vXXct_iDH-Wbz5ha4',
   authDomain: 'indictyping-72862.firebaseapp.com',
   projectId: 'indictyping-72862',
