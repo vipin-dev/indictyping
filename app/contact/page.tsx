@@ -10,7 +10,7 @@ const lastUpdated = '23 Dec 2025';
 
 export default function ContactPage() {
   return (
-    <div className="bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900">
+    <div className="h-full bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900 overflow-y-auto">
       <div className="mx-auto max-w-4xl px-6 py-12 space-y-6">
         <div className="space-y-2">
           <p className="text-xs uppercase tracking-[0.25rem] text-indigo-500">Contact</p>

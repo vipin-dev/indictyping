@@ -32,18 +32,18 @@ export default function TargetTextRenderer({ targetText, userInput }: TargetText
         targetChar.startsWith(userChar);
       const isCurrentPosition = i === currentPosition;
       
-      // Determine styling for this character
+      // Determine styling for this character (Material Design 3 colors)
       let className = 'inline';
       if (isTyped) {
         if (isCorrect) {
-          className += ' bg-green-200 text-green-900';
+          className += ' bg-[#4CAF50]/30 text-[#81C784]';
         } else if (isPartial) {
-          className += ' bg-yellow-200 text-yellow-900';
+          className += ' bg-[#FF9800]/30 text-[#FFB74D]';
         } else {
-          className += ' bg-red-200 text-red-900';
+          className += ' bg-[#CF6679]/30 text-[#EF5350]';
         }
       } else {
-        className += ' text-gray-400';
+        className += ' text-[#616161]';
       }
       
       // Handle special characters
@@ -66,7 +66,7 @@ export default function TargetTextRenderer({ targetText, userInput }: TargetText
       // Add caret after current position
       if (isCurrentPosition) {
         elements.push(
-          <span key={`caret-${i}`} className="inline w-0.5 h-5 bg-blue-500 animate-pulse ml-0.5 align-middle" />
+          <span key={`caret-${i}`} className="inline w-0.5 h-5 bg-[#BB86FC] animate-pulse ml-0.5 align-middle rounded-full" />
         );
       }
     }
@@ -74,7 +74,7 @@ export default function TargetTextRenderer({ targetText, userInput }: TargetText
     // If caret is at the end, add it
     if (currentPosition >= targetGraphemes.length) {
       elements.push(
-        <span key="caret-end" className="inline w-0.5 h-5 bg-blue-500 animate-pulse ml-0.5 align-middle" />
+        <span key="caret-end" className="inline w-0.5 h-5 bg-[#BB86FC] animate-pulse ml-0.5 align-middle rounded-full" />
       );
     }
     
@@ -82,7 +82,7 @@ export default function TargetTextRenderer({ targetText, userInput }: TargetText
   };
 
   return (
-    <div className="w-full p-5 bg-white border border-slate-200 rounded-2xl min-h-[140px] text-lg leading-relaxed whitespace-pre-wrap break-words shadow-md">
+    <div className="w-full p-4 bg-[#1E1E1E] border border-[#424242] rounded-3xl min-h-[100px] max-h-[120px] text-base leading-relaxed whitespace-pre-wrap break-words shadow-lg overflow-y-auto">
       {renderText()}
     </div>
   );

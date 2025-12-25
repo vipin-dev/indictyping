@@ -2,16 +2,28 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import TypingPracticeArea from './TypingPracticeArea';
-import AdBanner from './AdBanner';
-import { malayalamSamples } from '@/samples';
 import { malayalamInScriptLayout } from '@/layouts/malayalam_inscript';
 import { getGraphemes } from '@/utils/graphemes';
 import { initAnalytics } from '@/utils/firebase';
+import {
+  getLevelById,
+  getNextLevel,
+  getPreviousLevel,
+  getAllLevels,
+  getLayoutForLanguage,
+  Difficulty,
+  Level,
+} from '@/data/levels';
 
-export default function PracticePage() {
-  const [language, setLanguage] = useState('malayalam');
-  const [targetText, setTargetText] = useState(malayalamSamples[0]);
+export default function TutorialPage() {
+  const searchParams = useSearchParams();
+  const levelId = searchParams.get('level') || 'mal-basic-1';
+  const languageParam = searchParams.get('lang') || 'malayalam';
+  const language = languageParam; // Can be made dynamic in the future
+
+  const [currentLevel, setCurrentLevel] = useState<Level | null>(null);
   const [userInput, setUserInput] = useState('');
   const [startTime, setStartTime] = useState<number | null>(null);
   const [timeElapsed, setTimeElapsed] = useState(0);
@@ -19,13 +31,37 @@ export default function PracticePage() {
   const [isTyping, setIsTyping] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [levelPassed, setLevelPassed] = useState(false);
   const hiddenInputRef = useRef<HTMLTextAreaElement>(null);
-  const targetGraphemes = useMemo(() => getGraphemes(targetText), [targetText]);
+
+  // Load level when levelId changes
+  useEffect(() => {
+    const level = getLevelById(language, levelId);
+    setCurrentLevel(level);
+    setUserInput('');
+    setStartTime(null);
+    setTimeElapsed(0);
+    setIsTyping(false);
+    setHighlightedKey(null);
+    setIsComplete(false);
+    setLevelPassed(false);
+  }, [levelId, language]);
+
+  const targetGraphemes = useMemo(
+    () => (currentLevel ? getGraphemes(currentLevel.targetText) : []),
+    [currentLevel]
+  );
   const userGraphemes = useMemo(() => getGraphemes(userInput), [userInput]);
+
+  const layout = useMemo(() => {
+    const langLayout = getLayoutForLanguage(language);
+    return langLayout || malayalamInScriptLayout; // Fallback to Malayalam
+  }, [language]);
+
   const glyphToKey = useMemo(() => {
     const map: Record<string, { code: string; shift?: boolean }> = {};
-    malayalamInScriptLayout.forEach((row) => {
-      row.keys.forEach((key) => {
+    layout.forEach((row: any) => {
+      row.keys.forEach((key: any) => {
         if (key.primary) {
           map[key.primary] = { code: key.code, shift: false };
         }
@@ -35,10 +71,9 @@ export default function PracticePage() {
       });
     });
     return map;
-  }, []);
+  }, [layout]);
 
-  // Calculate WPM (Words Per Minute)
-  // Standard: 5 characters = 1 word
+  // Calculate WPM
   const calculateWPM = useCallback((): number => {
     if (!startTime || userGraphemes.length === 0) return 0;
     const minutes = timeElapsed / 60;
@@ -47,7 +82,7 @@ export default function PracticePage() {
     return words / minutes;
   }, [startTime, userGraphemes.length, timeElapsed]);
 
-  // Calculate accuracy percentage
+  // Calculate accuracy
   const calculateAccuracy = useCallback((): number => {
     if (userGraphemes.length === 0) return 100;
     let correct = 0;
@@ -85,7 +120,6 @@ export default function PracticePage() {
   }, []);
 
   useEffect(() => {
-    // Initialize Firebase analytics on client
     initAnalytics();
   }, []);
 
@@ -93,7 +127,7 @@ export default function PracticePage() {
   const handleInputChange = (value: string) => {
     setUserInput(value);
     const nextGraphemes = getGraphemes(value);
-    
+
     // Start timer on first keypress
     if (!isTyping && nextGraphemes.length > 0) {
       setIsTyping(true);
@@ -108,6 +142,14 @@ export default function PracticePage() {
       setTimeElapsed(finalTime);
       setIsTyping(false);
       setIsComplete(true);
+
+      // Check if level passed
+      const wpm = calculateWPM();
+      const accuracy = calculateAccuracy();
+      const passed =
+        (!currentLevel?.minAccuracy || accuracy >= currentLevel.minAccuracy) &&
+        (!currentLevel?.minWPM || wpm >= currentLevel.minWPM);
+      setLevelPassed(passed);
     } else {
       setIsComplete(false);
     }
@@ -117,8 +159,6 @@ export default function PracticePage() {
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     const code = event.code;
     setHighlightedKey(code);
-    
-    // Clear highlight after 100ms
     setTimeout(() => {
       setHighlightedKey(null);
     }, 100);
@@ -132,25 +172,19 @@ export default function PracticePage() {
     setIsTyping(false);
     setHighlightedKey(null);
     setIsComplete(false);
-  };
-
-  // Load new text
-  const handleNewText = () => {
-    const currentIndex = malayalamSamples.indexOf(targetText);
-    const nextIndex = (currentIndex + 1) % malayalamSamples.length;
-    setTargetText(malayalamSamples[nextIndex]);
-    handleReset();
+    setLevelPassed(false);
   };
 
   const focusHiddenInput = () => {
     hiddenInputRef.current?.focus();
   };
+
   const wpm = calculateWPM();
   const accuracy = calculateAccuracy();
+
   const suggestedKeys = useMemo(() => {
     if (targetGraphemes.length === 0) return null;
 
-    // Check if the last typed grapheme is a partial match of the target grapheme
     const lastIndex = userGraphemes.length - 1;
     if (lastIndex >= 0) {
       const userPrev = userGraphemes[lastIndex];
@@ -173,7 +207,6 @@ export default function PracticePage() {
       }
     }
 
-    // Otherwise suggest the next grapheme
     const nextGrapheme = targetGraphemes[userGraphemes.length];
     if (!nextGrapheme) return null;
     const firstGlyph = Array.from(nextGrapheme)[0];
@@ -189,45 +222,115 @@ export default function PracticePage() {
     return [mapped];
   }, [glyphToKey, targetGraphemes, userGraphemes]);
 
+  const allLevels = getAllLevels(language);
+  const nextLevel = currentLevel ? getNextLevel(language, currentLevel.id) : null;
+  const previousLevel = currentLevel ? getPreviousLevel(language, currentLevel.id) : null;
+
+  if (!currentLevel) {
+    return (
+      <div className="h-full flex items-center justify-center bg-[#121212] text-[#FFFFFF]">
+        <div className="text-center">
+          <p className="text-xl mb-4">Level not found</p>
+          <Link href="/tutorial" className="text-[#BB86FC] hover:text-[#E1BEE7]">
+            Go to Tutorial
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full flex flex-col bg-[#121212] text-[#FFFFFF] overflow-hidden">
-      {/* Top bar - Full width */}
+      {/* Top bar */}
       <div className="flex-shrink-0 w-full border-b border-[#424242] bg-[#1E1E1E]">
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between py-4">
             <div className="flex items-center gap-6">
-              <h1 className="text-xl font-medium text-[#FFFFFF] tracking-tight">IndicTyping</h1>
+              <Link href="/" className="text-xl font-medium text-[#FFFFFF] tracking-tight hover:text-[#BB86FC] transition-colors">
+                IndicTyping
+              </Link>
               <Link href="/tutorial" className="text-sm text-[#BB86FC] hover:text-[#E1BEE7] transition-colors font-medium">
                 Tutorial
               </Link>
-              <Link href="/about" className="text-sm text-[#BB86FC] hover:text-[#E1BEE7] transition-colors font-medium">
-                About
-              </Link>
             </div>
-            <div className="flex items-center gap-3">
-              <label className="text-sm font-medium text-[#E0E0E0]">
-                Language
-                <select
-                  value={language}
-                  onChange={(e) => {
-                    setLanguage(e.target.value);
-                    handleReset();
-                  }}
-                  className="ml-2 rounded-xl border border-[#424242] bg-[#2C2C2C] px-4 py-2 text-[#FFFFFF] text-sm focus:border-[#BB86FC] focus:outline-none focus:ring-2 focus:ring-[#BB86FC]/20 transition-all"
-                >
-                  <option value="malayalam" className="bg-[#2C2C2C]">Malayalam</option>
-                </select>
-              </label>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-[#9E9E9E]">
+                Level {allLevels.findIndex(l => l.id === currentLevel.id) + 1} of {allLevels.length}
+              </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Content area - Flex to fill remaining space */}
+      {/* Content area */}
       <div className="flex-1 min-h-0 w-full px-6 py-5 overflow-hidden">
         <div className="h-full flex flex-col min-h-0 overflow-hidden max-w-7xl mx-auto">
+          {/* Level info */}
+          <div className="flex-shrink-0 mb-4">
+            <div className="flex items-start justify-between gap-4 mb-3">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    currentLevel.difficulty === Difficulty.BEGINNER
+                      ? 'bg-[#4CAF50]/20 text-[#81C784]'
+                      : currentLevel.difficulty === Difficulty.INTERMEDIATE
+                      ? 'bg-[#FF9800]/20 text-[#FFB74D]'
+                      : 'bg-[#CF6679]/20 text-[#EF5350]'
+                  }`}>
+                    {currentLevel.difficulty}
+                  </span>
+                  <span className="text-xs text-[#9E9E9E] uppercase tracking-wider">
+                    {currentLevel.type.replace('_', ' ')}
+                  </span>
+                </div>
+                <h1 className="text-2xl font-medium text-[#FFFFFF] mb-2">{currentLevel.title}</h1>
+                <p className="text-sm text-[#9E9E9E]">{currentLevel.description}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                {previousLevel && (
+                  <Link
+                    href={`/tutorial/level?level=${previousLevel.id}&lang=${language}`}
+                    className="rounded-full border border-[#424242] bg-[#2C2C2C] px-4 py-2 text-[#E0E0E0] text-sm font-medium hover:bg-[#363636] transition-all"
+                  >
+                    ← Previous
+                  </Link>
+                )}
+                {nextLevel && (
+                  <Link
+                    href={`/tutorial/level?level=${nextLevel.id}&lang=${language}`}
+                    className="rounded-full bg-[#BB86FC] px-4 py-2 text-[#000000] text-sm font-medium hover:bg-[#E1BEE7] transition-all shadow-lg shadow-[#BB86FC]/30"
+                  >
+                    Next →
+                  </Link>
+                )}
+              </div>
+            </div>
+
+            {/* Requirements */}
+            <div className="flex items-center gap-4 text-xs text-[#9E9E9E]">
+              {currentLevel.minAccuracy && (
+                <span>Min Accuracy: {currentLevel.minAccuracy}%</span>
+              )}
+              {currentLevel.minWPM && (
+                <span>Min WPM: {currentLevel.minWPM}</span>
+              )}
+            </div>
+
+            {/* Hints */}
+            {currentLevel.hints && currentLevel.hints.length > 0 && (
+              <div className="mt-3 p-3 rounded-2xl bg-[#1E1E1E] border border-[#424242]">
+                <p className="text-xs font-medium text-[#BB86FC] mb-2">💡 Hints:</p>
+                <ul className="list-disc list-inside text-xs text-[#9E9E9E] space-y-1">
+                  {currentLevel.hints.map((hint, idx) => (
+                    <li key={idx}>{hint}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          {/* Stats and actions */}
           <div className="flex-shrink-0 flex items-center justify-between mb-4 gap-4 flex-wrap">
-            {/* Stats inline */}
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-4">
                 <div className="flex flex-col">
@@ -252,60 +355,72 @@ export default function PracticePage() {
                 Reset
               </button>
             </div>
-            
-            {/* Action buttons */}
-            <div className="flex items-center gap-3 text-xs">
-              <button
-                onClick={focusHiddenInput}
-                className="rounded-full border border-[#424242] bg-[#2C2C2C] px-4 py-2 text-[#E0E0E0] text-sm font-medium hover:bg-[#363636] hover:border-[#BB86FC]/50 transition-all"
-              >
-                Click to focus
-              </button>
-              <div className="flex items-center gap-2">
-                <span className="text-[#9E9E9E] text-xs">or press Tab then Enter</span>
-                <button
-                  onClick={handleNewText}
-                  className="inline-flex items-center gap-2 rounded-full bg-[#BB86FC] px-4 py-2 text-sm font-medium text-[#000000] hover:bg-[#E1BEE7] transition-all shadow-lg shadow-[#BB86FC]/30"
-                >
-                  New Text
-                </button>
-              </div>
-            </div>
+            <button
+              onClick={focusHiddenInput}
+              className="rounded-full border border-[#424242] bg-[#2C2C2C] px-4 py-2 text-[#E0E0E0] text-sm font-medium hover:bg-[#363636] hover:border-[#BB86FC]/50 transition-all"
+            >
+              Click to focus
+            </button>
           </div>
 
           {/* Completion message */}
           {isComplete && (
-            <div className="flex-shrink-0 mb-4 rounded-3xl border border-[#4CAF50]/30 bg-[#1B5E20]/20 backdrop-blur-sm p-5 shadow-lg text-sm">
+            <div className={`flex-shrink-0 mb-4 rounded-3xl border p-5 shadow-lg ${
+              levelPassed
+                ? 'border-[#4CAF50]/30 bg-[#1B5E20]/20'
+                : 'border-[#FF9800]/30 bg-[#E65100]/20'
+            }`}>
               <div className="flex items-center justify-between w-full">
                 <div>
-                  <p className="font-medium mb-1 text-[#4CAF50] text-base">Completed!</p>
-                  <p className="text-[#81C784]">WPM: {Math.round(wpm)} · Accuracy: {Math.round(accuracy)}% · Time: {Math.floor(timeElapsed)}s</p>
+                  <p className={`font-medium mb-1 text-base ${
+                    levelPassed ? 'text-[#4CAF50]' : 'text-[#FF9800]'
+                  }`}>
+                    {levelPassed ? '🎉 Level Passed!' : '⚠️ Level Not Passed'}
+                  </p>
+                  <p className={`text-sm ${
+                    levelPassed ? 'text-[#81C784]' : 'text-[#FFB74D]'
+                  }`}>
+                    WPM: {Math.round(wpm)} · Accuracy: {Math.round(accuracy)}%
+                    {!levelPassed && currentLevel.minAccuracy && accuracy < currentLevel.minAccuracy && (
+                      <span className="block mt-1">Need {currentLevel.minAccuracy}% accuracy</span>
+                    )}
+                    {!levelPassed && currentLevel.minWPM && wpm < currentLevel.minWPM && (
+                      <span className="block mt-1">Need {currentLevel.minWPM} WPM</span>
+                    )}
+                  </p>
                 </div>
                 <div className="flex gap-3">
                   <button
                     onClick={handleReset}
-                    className="rounded-full bg-[#4CAF50] px-4 py-2 text-white text-sm font-medium hover:bg-[#66BB6A] transition-all shadow-lg shadow-[#4CAF50]/30"
+                    className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
+                      levelPassed
+                        ? 'bg-[#4CAF50] text-white hover:bg-[#66BB6A] shadow-lg shadow-[#4CAF50]/30'
+                        : 'bg-[#FF9800] text-white hover:bg-[#FFB74D] shadow-lg shadow-[#FF9800]/30'
+                    }`}
                   >
                     Retry
                   </button>
-                  <button
-                    onClick={handleNewText}
-                    className="rounded-full border border-[#4CAF50]/50 bg-transparent px-4 py-2 text-[#4CAF50] text-sm font-medium hover:bg-[#4CAF50]/10 transition-all"
-                  >
-                    Next text
-                  </button>
+                  {levelPassed && nextLevel && (
+                    <Link
+                      href={`/tutorial/level?level=${nextLevel.id}&lang=${language}`}
+                      className="rounded-full border border-[#4CAF50]/50 bg-transparent px-4 py-2 text-[#4CAF50] text-sm font-medium hover:bg-[#4CAF50]/10 transition-all"
+                    >
+                      Next Level
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>
           )}
 
+          {/* Typing practice area */}
           <div className="flex-1 min-h-0 overflow-y-auto">
             <TypingPracticeArea
-              targetText={targetText}
+              targetText={currentLevel.targetText}
               userInput={userInput}
               onInputChange={handleInputChange}
               onKeyDown={handleKeyDown}
-              layout={malayalamInScriptLayout}
+              layout={layout}
               highlightedKey={highlightedKey}
               suggestedKeys={suggestedKeys}
               wpm={wpm}
@@ -320,16 +435,9 @@ export default function PracticePage() {
               showInput={true}
             />
           </div>
-
-          {/* Ad Banner at bottom */}
-          <div className="flex-shrink-0 mt-4">
-            <AdBanner
-              adClient={process.env.NEXT_PUBLIC_ADSENSE_CLIENT}
-              adSlot={process.env.NEXT_PUBLIC_ADSENSE_SLOT}
-            />
-          </div>
         </div>
       </div>
     </div>
   );
 }
+

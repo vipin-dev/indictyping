@@ -41,10 +41,10 @@ export default function OnScreenKeyboard({ layout, highlightedKey, suggestedKeys
   };
 
   return (
-    <div className="w-full rounded-xl border border-slate-200 bg-white p-3 shadow-inner">
-      <div className="flex flex-col gap-2 max-w-full mx-auto min-w-[720px]">
+    <div className="w-full rounded-2xl border border-[#424242] bg-[#2C2C2C] p-4">
+      <div className="flex flex-col gap-2.5 max-w-full mx-auto">
         {layout.map((row, rowIndex) => (
-          <div key={rowIndex} className="flex gap-1 justify-center">
+          <div key={rowIndex} className="flex gap-1.5 justify-center items-center">
             {row.keys.map((key, keyIndex) => {
               const width = key.width || 1;
               const isHighlighted = isKeyHighlighted(key.code);
@@ -55,27 +55,34 @@ export default function OnScreenKeyboard({ layout, highlightedKey, suggestedKeys
                   key={keyIndex}
                   className={`
                     flex flex-col items-center justify-center
-                    h-12 px-2 rounded-lg
-                    border border-slate-200
-                    text-sm font-semibold
-                    transition-all duration-100
-                    ${isHighlighted ? 'bg-indigo-100 text-indigo-900 border-indigo-300 scale-105 shadow-md' : suggestion ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-slate-50 text-slate-900'}
-                    min-w-[40px]
+                    h-14 px-3 py-1.5 rounded-xl
+                    border
+                    text-sm font-medium
+                    transition-all duration-200
+                    ${isHighlighted 
+                      ? 'bg-[#BB86FC] text-[#000000] border-[#BB86FC] scale-105 shadow-lg shadow-[#BB86FC]/50' 
+                      : suggestion 
+                        ? 'bg-[#FF9800]/20 text-[#FFB74D] border-[#FF9800]/50' 
+                        : 'bg-[#363636] text-[#E0E0E0] border-[#424242] hover:bg-[#404040]'
+                    }
+                    min-w-[44px]
                   `}
                   style={{ flex: width }}
                 >
-                  <div className="text-[10px] uppercase tracking-wide text-slate-500">
+                  <div className={`text-[9px] uppercase tracking-wide mb-0.5 ${
+                    isHighlighted ? 'text-[#000000]/70' : suggestion ? 'text-[#FFB74D]/70' : 'text-[#9E9E9E]'
+                  }`}>
                     {getKeyDisplayName(key.code)}
                   </div>
-                  <div className="text-base">
+                  <div className="text-base leading-tight">
                     {getKeyLabel(key, suggestion?.shift)}
                   </div>
                   {key.shift && (
                     <div
-                      className={`text-xs ${
+                      className={`text-[10px] leading-tight mt-0.5 ${
                         suggestion?.shift
-                          ? 'text-amber-900 font-semibold'
-                          : 'text-slate-400'
+                          ? 'text-[#FFB74D] font-medium'
+                          : 'text-[#616161]'
                       }`}
                     >
                       {key.shift}
