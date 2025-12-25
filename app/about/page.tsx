@@ -1,10 +1,7 @@
-import type { Metadata } from 'next';
-import Link from 'next/link';
+'use client';
 
-export const metadata: Metadata = {
-  title: 'About – IndicTyping',
-  description: 'Learn about IndicTyping and our mission to make Malayalam InScript typing easier.',
-};
+import Link from 'next/link';
+import { trackLinkClick } from '@/utils/analytics';
 
 export default function AboutPage() {
   return (
@@ -20,12 +17,16 @@ export default function AboutPage() {
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
           <p className="text-slate-700">
-            We designed IndicTyping to stay simple: no sign-ups, no distractions—just practice, instant accuracy checks, and visual guidance for the next key. Whether you’re learning InScript for the first time or sharpening your speed, we aim to keep the experience smooth on both desktop and mobile.
+            We designed IndicTyping to stay simple: no sign-ups, no distractions—just practice, instant accuracy checks, and visual guidance for the next key. Whether you're learning InScript for the first time or sharpening your speed, we aim to keep the experience smooth on both desktop and mobile.
           </p>
           <p className="text-slate-700">
             Built by the indictyping.in team with a focus on clarity and accessibility for Malayalam typists everywhere.
           </p>
-          <Link href="/contact" className="text-indigo-600 hover:text-indigo-800 text-sm">
+          <Link 
+            href="/contact" 
+            onClick={() => trackLinkClick('Get in touch', '/contact', 'about_page')}
+            className="text-indigo-600 hover:text-indigo-800 text-sm"
+          >
             Get in touch
           </Link>
         </div>

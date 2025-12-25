@@ -1,9 +1,6 @@
-import type { Metadata } from 'next';
+'use client';
 
-export const metadata: Metadata = {
-  title: 'Contact – IndicTyping',
-  description: 'Contact information for IndicTyping',
-};
+import { trackLinkClick } from '@/utils/analytics';
 
 const contactEmail = 'contact@indictyping.in';
 const lastUpdated = '23 Dec 2025';
@@ -21,7 +18,11 @@ export default function ContactPage() {
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4 text-slate-800 leading-relaxed">
           <p>
             Have a question, found a bug, or want to suggest a feature? Reach us at{' '}
-            <a className="text-indigo-600 hover:text-indigo-800" href={`mailto:${contactEmail}`}>
+            <a 
+              className="text-indigo-600 hover:text-indigo-800" 
+              href={`mailto:${contactEmail}`}
+              onClick={() => trackLinkClick(contactEmail, `mailto:${contactEmail}`, 'contact_page')}
+            >
               {contactEmail}
             </a>.
           </p>

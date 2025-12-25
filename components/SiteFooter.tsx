@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { trackLinkClick } from '@/utils/analytics';
 
 const footerLinks = [
   { href: '/about', label: 'About' },
@@ -17,6 +18,7 @@ export default function SiteFooter() {
           <Link
             key={link.href}
             href={link.href}
+            onClick={() => trackLinkClick(link.label, link.href, 'footer')}
             className="hover:text-[#BB86FC] transition-colors font-medium"
           >
             {link.label}

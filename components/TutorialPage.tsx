@@ -8,6 +8,17 @@ import { malayalamInScriptLayout } from '@/layouts/malayalam_inscript';
 import { getGraphemes } from '@/utils/graphemes';
 import { initAnalytics } from '@/utils/firebase';
 import {
+  trackTypingStart,
+  trackTypingComplete,
+  trackTypingReset,
+  trackFocusInput,
+  trackButtonClick,
+  trackLinkClick,
+  trackTutorialLevelStart,
+  trackTutorialLevelComplete,
+  trackTutorialNavigation,
+} from '@/utils/analytics';
+import {
   getLevelById,
   getNextLevel,
   getPreviousLevel,
@@ -45,6 +56,17 @@ export default function TutorialPage() {
     setHighlightedKey(null);
     setIsComplete(false);
     setLevelPassed(false);
+    
+    // Track level start
+    if (level) {
+      trackTutorialLevelStart(
+        level.id,
+        level.title,
+        level.difficulty,
+        level.type,
+        language
+      );
+    }
   }, [levelId, language]);
 
   const targetGraphemes = useMemo(
@@ -134,6 +156,10 @@ export default function TutorialPage() {
       const now = Date.now();
       setStartTime(now);
       setTimeElapsed(0);
+      // Track typing start
+      if (currentLevel) {
+        trackTypingStart(language, targetGraphemes.length, true, currentLevel.id);
+      }
     }
 
     // Detect completion
@@ -150,6 +176,28 @@ export default function TutorialPage() {
         (!currentLevel?.minAccuracy || accuracy >= currentLevel.minAccuracy) &&
         (!currentLevel?.minWPM || wpm >= currentLevel.minWPM);
       setLevelPassed(passed);
+      
+      // Track completion
+      if (currentLevel) {
+        trackTypingComplete(
+          language,
+          wpm,
+          accuracy,
+          finalTime,
+          targetGraphemes.length,
+          true,
+          currentLevel.id
+        );
+        trackTutorialLevelComplete(
+          currentLevel.id,
+          passed,
+          wpm,
+          accuracy,
+          finalTime,
+          currentLevel.minAccuracy,
+          currentLevel.minWPM
+        );
+      }
     } else {
       setIsComplete(false);
     }
@@ -173,10 +221,16 @@ export default function TutorialPage() {
     setHighlightedKey(null);
     setIsComplete(false);
     setLevelPassed(false);
+    // Track reset
+    if (currentLevel) {
+      trackTypingReset(language, 'user_action', true, currentLevel.id);
+    }
   };
 
   const focusHiddenInput = () => {
     hiddenInputRef.current?.focus();
+    trackFocusInput('tutorial_page', 'click');
+    trackButtonClick('focus_input', 'tutorial_page');
   };
 
   const wpm = calculateWPM();
@@ -246,10 +300,18 @@ export default function TutorialPage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between py-4">
             <div className="flex items-center gap-6">
-              <Link href="/" className="text-xl font-medium text-[#FFFFFF] tracking-tight hover:text-[#BB86FC] transition-colors">
+              <Link 
+                href="/" 
+                className="text-xl font-medium text-[#FFFFFF] tracking-tight hover:text-[#BB86FC] transition-colors"
+                onClick={() => trackLinkClick('IndicTyping', '/', 'tutorial_header')}
+              >
                 IndicTyping
               </Link>
-              <Link href="/tutorial" className="text-sm text-[#BB86FC] hover:text-[#E1BEE7] transition-colors font-medium">
+              <Link 
+                href="/tutorial" 
+                className="text-sm text-[#BB86FC] hover:text-[#E1BEE7] transition-colors font-medium"
+                onClick={() => trackLinkClick('Tutorial', '/tutorial', 'tutorial_header')}
+              >
                 Tutorial
               </Link>
             </div>
@@ -290,6 +352,11 @@ export default function TutorialPage() {
                 {previousLevel && (
                   <Link
                     href={`/tutorial/level?level=${previousLevel.id}&lang=${language}`}
+                    onClick={() => {
+                      if (currentLevel) {
+                        trackTutorialNavigation(currentLevel.id, previousLevel.id, 'previous');
+                      }
+                    }}
                     className="rounded-full border border-[#424242] bg-[#2C2C2C] px-4 py-2 text-[#E0E0E0] text-sm font-medium hover:bg-[#363636] transition-all"
                   >
                     ← Previous
@@ -298,6 +365,11 @@ export default function TutorialPage() {
                 {nextLevel && (
                   <Link
                     href={`/tutorial/level?level=${nextLevel.id}&lang=${language}`}
+                    onClick={() => {
+                      if (currentLevel) {
+                        trackTutorialNavigation(currentLevel.id, nextLevel.id, 'next');
+                      }
+                    }}
                     className="rounded-full bg-[#BB86FC] px-4 py-2 text-[#000000] text-sm font-medium hover:bg-[#E1BEE7] transition-all shadow-lg shadow-[#BB86FC]/30"
                   >
                     Next →
@@ -349,7 +421,14 @@ export default function TutorialPage() {
                 </div>
               </div>
               <button
-                onClick={handleReset}
+                onClick={() => {
+                  handleReset();
+                  trackButtonClick('reset', 'tutorial_page', { 
+                    level_id: currentLevel?.id,
+                    wpm: Math.round(wpm), 
+                    accuracy: Math.round(accuracy) 
+                  });
+                }}
                 className="inline-flex items-center justify-center rounded-full bg-[#BB86FC] px-4 py-2 text-sm font-medium text-[#000000] hover:bg-[#E1BEE7] transition-all shadow-lg shadow-[#BB86FC]/30"
               >
                 Reset
@@ -391,7 +470,15 @@ export default function TutorialPage() {
                 </div>
                 <div className="flex gap-3">
                   <button
-                    onClick={handleReset}
+                    onClick={() => {
+                      handleReset();
+                      trackButtonClick('retry_completed', 'tutorial_completion', { 
+                        level_id: currentLevel?.id,
+                        passed: levelPassed,
+                        wpm: Math.round(wpm), 
+                        accuracy: Math.round(accuracy) 
+                      });
+                    }}
                     className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
                       levelPassed
                         ? 'bg-[#4CAF50] text-white hover:bg-[#66BB6A] shadow-lg shadow-[#4CAF50]/30'
@@ -403,6 +490,14 @@ export default function TutorialPage() {
                   {levelPassed && nextLevel && (
                     <Link
                       href={`/tutorial/level?level=${nextLevel.id}&lang=${language}`}
+                      onClick={() => {
+                        if (currentLevel) {
+                          trackTutorialNavigation(currentLevel.id, nextLevel.id, 'next');
+                          trackButtonClick('next_level_after_pass', 'tutorial_completion', { 
+                            level_id: currentLevel.id 
+                          });
+                        }
+                      }}
                       className="rounded-full border border-[#4CAF50]/50 bg-transparent px-4 py-2 text-[#4CAF50] text-sm font-medium hover:bg-[#4CAF50]/10 transition-all"
                     >
                       Next Level

@@ -8,6 +8,17 @@ import { malayalamSamples } from '@/samples';
 import { malayalamInScriptLayout } from '@/layouts/malayalam_inscript';
 import { getGraphemes } from '@/utils/graphemes';
 import { initAnalytics } from '@/utils/firebase';
+import {
+  trackTypingStart,
+  trackTypingComplete,
+  trackTypingReset,
+  trackNewText,
+  trackFocusInput,
+  trackButtonClick,
+  trackLinkClick,
+  trackLanguageChange,
+  trackSelectChange,
+} from '@/utils/analytics';
 
 export default function PracticePage() {
   const [language, setLanguage] = useState('malayalam');
@@ -100,6 +111,8 @@ export default function PracticePage() {
       const now = Date.now();
       setStartTime(now);
       setTimeElapsed(0);
+      // Track typing start
+      trackTypingStart(language, targetGraphemes.length, false);
     }
 
     // Detect completion
@@ -108,6 +121,17 @@ export default function PracticePage() {
       setTimeElapsed(finalTime);
       setIsTyping(false);
       setIsComplete(true);
+      // Track typing completion
+      const wpm = calculateWPM();
+      const accuracy = calculateAccuracy();
+      trackTypingComplete(
+        language,
+        wpm,
+        accuracy,
+        finalTime,
+        targetGraphemes.length,
+        false
+      );
     } else {
       setIsComplete(false);
     }
@@ -132,18 +156,26 @@ export default function PracticePage() {
     setIsTyping(false);
     setHighlightedKey(null);
     setIsComplete(false);
+    // Track reset
+    trackTypingReset(language, 'user_action', false);
   };
 
   // Load new text
   const handleNewText = () => {
     const currentIndex = malayalamSamples.indexOf(targetText);
     const nextIndex = (currentIndex + 1) % malayalamSamples.length;
-    setTargetText(malayalamSamples[nextIndex]);
+    const newText = malayalamSamples[nextIndex];
+    setTargetText(newText);
     handleReset();
+    // Track new text loaded
+    trackNewText(language, getGraphemes(newText).length, false);
+    trackButtonClick('new_text', 'practice_page');
   };
 
   const focusHiddenInput = () => {
     hiddenInputRef.current?.focus();
+    trackFocusInput('practice_page', 'click');
+    trackButtonClick('focus_input', 'practice_page');
   };
   const wpm = calculateWPM();
   const accuracy = calculateAccuracy();
@@ -197,10 +229,18 @@ export default function PracticePage() {
           <div className="flex items-center justify-between py-4">
             <div className="flex items-center gap-6">
               <h1 className="text-xl font-medium text-[#FFFFFF] tracking-tight">IndicTyping</h1>
-              <Link href="/tutorial" className="text-sm text-[#BB86FC] hover:text-[#E1BEE7] transition-colors font-medium">
+              <Link 
+                href="/tutorial" 
+                className="text-sm text-[#BB86FC] hover:text-[#E1BEE7] transition-colors font-medium"
+                onClick={() => trackLinkClick('Tutorial', '/tutorial', 'practice_page_header')}
+              >
                 Tutorial
               </Link>
-              <Link href="/about" className="text-sm text-[#BB86FC] hover:text-[#E1BEE7] transition-colors font-medium">
+              <Link 
+                href="/about" 
+                className="text-sm text-[#BB86FC] hover:text-[#E1BEE7] transition-colors font-medium"
+                onClick={() => trackLinkClick('About', '/about', 'practice_page_header')}
+              >
                 About
               </Link>
             </div>
@@ -210,7 +250,10 @@ export default function PracticePage() {
                 <select
                   value={language}
                   onChange={(e) => {
-                    setLanguage(e.target.value);
+                    const newLanguage = e.target.value;
+                    trackLanguageChange(language, newLanguage);
+                    trackSelectChange('language', newLanguage, 'practice_page_header');
+                    setLanguage(newLanguage);
                     handleReset();
                   }}
                   className="ml-2 rounded-xl border border-[#424242] bg-[#2C2C2C] px-4 py-2 text-[#FFFFFF] text-sm focus:border-[#BB86FC] focus:outline-none focus:ring-2 focus:ring-[#BB86FC]/20 transition-all"
@@ -246,7 +289,10 @@ export default function PracticePage() {
                 </div>
               </div>
               <button
-                onClick={handleReset}
+                onClick={() => {
+                  handleReset();
+                  trackButtonClick('reset', 'practice_page', { wpm: Math.round(wpm), accuracy: Math.round(accuracy) });
+                }}
                 className="inline-flex items-center justify-center rounded-full bg-[#BB86FC] px-4 py-2 text-sm font-medium text-[#000000] hover:bg-[#E1BEE7] transition-all shadow-lg shadow-[#BB86FC]/30"
               >
                 Reset
@@ -283,13 +329,19 @@ export default function PracticePage() {
                 </div>
                 <div className="flex gap-3">
                   <button
-                    onClick={handleReset}
+                    onClick={() => {
+                      handleReset();
+                      trackButtonClick('retry_completed', 'practice_page_completion', { wpm: Math.round(wpm), accuracy: Math.round(accuracy) });
+                    }}
                     className="rounded-full bg-[#4CAF50] px-4 py-2 text-white text-sm font-medium hover:bg-[#66BB6A] transition-all shadow-lg shadow-[#4CAF50]/30"
                   >
                     Retry
                   </button>
                   <button
-                    onClick={handleNewText}
+                    onClick={() => {
+                      handleNewText();
+                      trackButtonClick('next_text_completed', 'practice_page_completion', { wpm: Math.round(wpm), accuracy: Math.round(accuracy) });
+                    }}
                     className="rounded-full border border-[#4CAF50]/50 bg-transparent px-4 py-2 text-[#4CAF50] text-sm font-medium hover:bg-[#4CAF50]/10 transition-all"
                   >
                     Next text

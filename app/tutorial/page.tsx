@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { getLevelsForLanguage, Difficulty, LevelType, LevelSet } from '@/data/levels';
+import { trackTutorialFilter, trackLinkClick, trackButtonClick } from '@/utils/analytics';
 
 export default function TutorialIndexPage() {
   const language = 'malayalam'; // Can be made dynamic in the future
@@ -53,7 +54,11 @@ export default function TutorialIndexPage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between py-4">
             <div className="flex items-center gap-6">
-              <Link href="/" className="text-xl font-medium text-[#FFFFFF] tracking-tight hover:text-[#BB86FC] transition-colors">
+              <Link 
+                href="/" 
+                className="text-xl font-medium text-[#FFFFFF] tracking-tight hover:text-[#BB86FC] transition-colors"
+                onClick={() => trackLinkClick('IndicTyping', '/', 'tutorial_index_header')}
+              >
                 IndicTyping
               </Link>
               <span className="text-sm text-[#BB86FC] font-medium">Tutorial</span>
@@ -61,6 +66,7 @@ export default function TutorialIndexPage() {
             <Link 
               href="/"
               className="text-sm text-[#9E9E9E] hover:text-[#E0E0E0] transition-colors"
+              onClick={() => trackLinkClick('Back to Practice', '/', 'tutorial_index_header')}
             >
               Back to Practice
             </Link>
@@ -84,7 +90,11 @@ export default function TutorialIndexPage() {
           <div className="mb-6 flex items-center gap-3 flex-wrap">
             <span className="text-sm text-[#9E9E9E]">Filter by difficulty:</span>
             <button
-              onClick={() => setSelectedDifficulty('all')}
+              onClick={() => {
+                setSelectedDifficulty('all');
+                trackTutorialFilter('all');
+                trackButtonClick('tutorial_filter_all', 'tutorial_index');
+              }}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                 selectedDifficulty === 'all'
                   ? 'bg-[#BB86FC] text-[#000000] shadow-lg shadow-[#BB86FC]/30'
@@ -96,7 +106,11 @@ export default function TutorialIndexPage() {
             {Object.values(Difficulty).map((difficulty) => (
               <button
                 key={difficulty}
-                onClick={() => setSelectedDifficulty(difficulty)}
+                onClick={() => {
+                  setSelectedDifficulty(difficulty);
+                  trackTutorialFilter(difficulty);
+                  trackButtonClick(`tutorial_filter_${difficulty}`, 'tutorial_index');
+                }}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${
                   selectedDifficulty === difficulty
                     ? `${getDifficultyColor(difficulty)} shadow-lg`
@@ -128,6 +142,14 @@ export default function TutorialIndexPage() {
                     <Link
                       key={level.id}
                       href={`/tutorial/level?level=${level.id}&lang=${language}`}
+                      onClick={() => {
+                        trackButtonClick('tutorial_level_card', 'tutorial_index', {
+                          level_id: level.id,
+                          level_title: level.title,
+                          difficulty: level.difficulty,
+                          level_type: level.type,
+                        });
+                      }}
                       className="group block p-5 rounded-3xl border border-[#424242] bg-[#1E1E1E] hover:border-[#BB86FC]/50 hover:bg-[#2C2C2C] transition-all"
                     >
                       <div className="flex items-start justify-between mb-3">

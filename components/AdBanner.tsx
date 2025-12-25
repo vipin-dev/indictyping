@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { trackAdView } from '@/utils/analytics';
 
 declare global {
   interface Window {
@@ -22,6 +23,8 @@ export default function AdBanner({ adClient, adSlot }: AdBannerProps) {
     if (!adClient || !adSlot) return;
     try {
       (window.adsbygoogle = window.adsbygoogle || []).push({});
+      // Track ad view
+      trackAdView(adSlot, adClient);
     } catch (err) {
       console.error('Adsense error', err);
     }

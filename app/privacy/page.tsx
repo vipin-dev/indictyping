@@ -1,9 +1,6 @@
-import type { Metadata } from 'next';
+'use client';
 
-export const metadata: Metadata = {
-  title: 'Privacy Policy – IndicTyping',
-  description: 'Privacy Policy for IndicTyping',
-};
+import { trackLinkClick } from '@/utils/analytics';
 
 const lastUpdated = '23 Dec 2025';
 const contactEmail = 'contact@indictyping.in';
@@ -52,7 +49,11 @@ export default function PrivacyPage() {
           </p>
           <h2 className="text-xl font-semibold text-slate-900">Contact</h2>
           <p>
-            If you have questions about this Privacy Policy, contact us at <a className="text-indigo-600 hover:text-indigo-800" href={`mailto:${contactEmail}`}>{contactEmail}</a>.
+            If you have questions about this Privacy Policy, contact us at <a 
+              className="text-indigo-600 hover:text-indigo-800" 
+              href={`mailto:${contactEmail}`}
+              onClick={() => trackLinkClick(contactEmail, `mailto:${contactEmail}`, 'privacy_page')}
+            >{contactEmail}</a>.
           </p>
         </div>
       </div>

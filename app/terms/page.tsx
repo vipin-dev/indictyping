@@ -1,9 +1,6 @@
-import type { Metadata } from 'next';
+'use client';
 
-export const metadata: Metadata = {
-  title: 'Terms of Service – IndicTyping',
-  description: 'Terms of Service for using IndicTyping',
-};
+import { trackLinkClick } from '@/utils/analytics';
 
 const lastUpdated = '23 Dec 2025';
 const contactEmail = 'contact@indictyping.in';
@@ -45,7 +42,11 @@ export default function TermsPage() {
           </p>
           <h2 className="text-xl font-semibold text-slate-900">Contact</h2>
           <p>
-            For questions about these Terms, contact us at <a className="text-indigo-600 hover:text-indigo-800" href={`mailto:${contactEmail}`}>{contactEmail}</a>.
+            For questions about these Terms, contact us at <a 
+              className="text-indigo-600 hover:text-indigo-800" 
+              href={`mailto:${contactEmail}`}
+              onClick={() => trackLinkClick(contactEmail, `mailto:${contactEmail}`, 'terms_page')}
+            >{contactEmail}</a>.
           </p>
         </div>
       </div>
