@@ -16,8 +16,17 @@ interface OnScreenKeyboardProps {
 export default function OnScreenKeyboard({ layout, highlightedKey, suggestedKeys }: OnScreenKeyboardProps) {
   const getKeyLabel = (key: KeyLayout, isShift: boolean = false): string => {
     if (isShift && key.shift) {
+      // Handle invisible ZWJ/ZWNJ characters for display
+      // Show the physical key that produces them
+      if (key.shift === '\u200D') return key.shift; // ZWJ - show shift value (ഞ) if available
+      if (key.shift === '\u200C') return key.shift; // ZWNJ - show shift value (|) if available
       return key.shift;
     }
+    // Handle invisible ZWJ/ZWNJ characters for display
+    // For BracketRight (]), show "]" as it's the physical key
+    // For Backslash (\), show "\" as it's the physical key
+    if (key.primary === '\u200D' && key.code === 'BracketRight') return ']';
+    if (key.primary === '\u200C' && key.code === 'Backslash') return '\\';
     return key.primary;
   };
 
